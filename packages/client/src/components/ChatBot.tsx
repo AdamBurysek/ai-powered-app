@@ -12,15 +12,20 @@ type ChatResponse = {
    message: string;
 };
 
+type Message = {
+   content: string;
+   role: 'user' | 'bot';
+};
+
 const ChatBot = () => {
-   const [messages, setMessages] = useState<string[]>([]);
+   const [messages, setMessages] = useState<Message[]>([]);
    const conversationId = useRef(crypto.randomUUID());
    const { register, handleSubmit, reset, formState } = useForm<FormData>();
 
    console.log(conversationId.current);
 
    const onSubmit = async ({ prompt }: FormData) => {
-      setMessages((prev) => [...prev, prompt]);
+      setMessages((prev) => [...prev, { content: prompt, role: 'user' }]);
       reset();
 
       const { data } = await axios.post<ChatResponse>('/api/chat', {
@@ -28,7 +33,7 @@ const ChatBot = () => {
          conversationId: conversationId.current,
       });
 
-      setMessages((prev) => [...prev, data.message]);
+      setMessages((prev) => [...prev, { content: data.message, role: 'bot' }]);
    };
 
    const onKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
@@ -40,15 +45,20 @@ const ChatBot = () => {
 
    return (
       <div>
-         <div>
+         <div className="flex flex-col gap-3">
             {messages.map((message, index) => (
-               <p key={index}> {message}</p>
+               <p
+                  key={index}
+                  className={`px-3 py-1 rounded-xl ${message.role === 'user' ? 'bg-blue-600 text-white self-end' : 'bg-gray-100 text-black self-start'}`}
+               >
+                  {message.content}
+               </p>
             ))}
          </div>
          <form
             onSubmit={handleSubmit(onSubmit)}
             onKeyDown={onKeyDown}
-            className="flex flex-col gap-2 items-end border-2 p-4 rounded-3xl"
+            className="flex flex-col gap-2 items-end border-2 p-4 rounded-3xl mt-10"
          >
             <textarea
                {...register('prompt', {
@@ -58,7 +68,7 @@ const ChatBot = () => {
                className="w-full border-0 focus:outline-0 resize-none"
                placeholder="Ask me anything..."
                maxLength={1000}
-            ></textarea>
+            />
             <Button
                disabled={!formState.isValid}
                className="rounded-full w-9 h-9"
